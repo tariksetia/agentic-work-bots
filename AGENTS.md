@@ -13,4 +13,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Never create branches, worktrees, or commits automatically. Only do so when the user explicitly asks for that specific action in the current request.
 - Leave changes uncommitted in the working tree on the current branch and let the user decide when
 and how to commit.
-- every commint message must start with "bot-works: "
+- every commint message must start with "bot-works: " and it must be succinct and articulate
