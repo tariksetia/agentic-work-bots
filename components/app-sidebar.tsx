@@ -4,7 +4,7 @@ import { UserButton } from "@clerk/nextjs"
 import { formatDistanceToNow } from "date-fns"
 import { PlusIcon, SearchIcon, UsersIcon } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { BotDialog } from "@/components/bot-dialog"
@@ -43,6 +43,7 @@ import type { ChatListItem } from "@/queries/bots"
 
 export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
   const router = useRouter()
+  const { chatId } = useParams<{ chatId?: string }>()
   const [botOpen, setBotOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -154,6 +155,7 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
                 <SidebarMenuItem key={chat.id}>
                   <SidebarMenuButton
                     size="lg"
+                    isActive={chat.id === chatId}
                     className="h-auto group-data-[collapsible=icon]:justify-center"
                     tooltip={chat.bot.name}
                     render={<Link href={`/chats/${chat.id}`} />}

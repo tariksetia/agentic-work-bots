@@ -1,5 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 import { getChats } from "@/queries/bots"
 
 export default async function DashboardLayout({
@@ -13,7 +13,6 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <AppSidebar chats={chats} />
       <main className="flex w-full min-w-0 flex-1 flex-col">
-        <SidebarTrigger />
         {children}
       </main>
     </SidebarProvider>
