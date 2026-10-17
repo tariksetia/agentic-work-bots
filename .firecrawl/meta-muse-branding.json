@@ -1,0 +1,163 @@
+{
+  "branding": {
+    "colorScheme": "light",
+    "fonts": [
+      {
+        "family": "Optimistic",
+        "role": "body"
+      }
+    ],
+    "colors": {
+      "primary": "#0457CB",
+      "secondary": "#385898",
+      "accent": "#0171E3",
+      "background": "#FFFFFF",
+      "textPrimary": "#0A1317",
+      "link": "#0171E3"
+    },
+    "typography": {
+      "fontFamilies": {
+        "primary": "Optimistic",
+        "heading": "Optimistic"
+      },
+      "fontStacks": {
+        "heading": [
+          "Optimistic",
+          "Montserrat",
+          "Helvetica",
+          "Arial",
+          "Noto Sans",
+          "sans-serif"
+        ],
+        "body": [
+          "Helvetica",
+          "Arial",
+          "sans-serif"
+        ],
+        "paragraph": [
+          "Optimistic",
+          "Montserrat",
+          "Helvetica",
+          "Arial",
+          "Noto Sans",
+          "sans-serif"
+        ]
+      },
+      "fontSizes": {
+        "h1": "64px",
+        "h2": "48px",
+        "body": "16px"
+      }
+    },
+    "spacing": {
+      "baseUnit": 4,
+      "borderRadius": "24px"
+    },
+    "components": {
+      "buttonPrimary": {
+        "background": "#0171E3",
+        "textColor": "#FFFFFF",
+        "borderRadius": "100px",
+        "borderRadiusCorners": {
+          "topLeft": "100px",
+          "topRight": "100px",
+          "bottomRight": "100px",
+          "bottomLeft": "100px"
+        },
+        "shadow": "none"
+      }
+    },
+    "images": {
+      "logo": "https://static.xx.fbcdn.net/rsrc.php/y3/r/y6QsbGgc866.svg",
+      "favicon": "https://static.xx.fbcdn.net/rsrc.php/y5/r/m4nf26cLQxS.ico",
+      "ogImage": "https://scontent-phl2-1.xx.fbcdn.net/v/t39.2365-6/795767136_1630478025086800_8969738526855678960_n.webp?_nc_cat=104&ccb=1-7&_nc_sid=aa6a2f&_nc_ohc=kwppeJgoqRAQ7kNvwEitXKU&_nc_oc=Adrpj8fHx1iNeaB1mzmihYlZPY5aBobYsx9znqOdfP4IWIWu2rytcSg44HcJThZvDTeLgLWe9VPfBsfeSxGaH0jk&_nc_zt=14&_nc_ht=scontent-phl2-1.xx&_nc_gid=KaC0-OtblJtuI7yT_HOK1Q&_nc_ss=7b289&oh=00_AQNn3An3FFBu9wtLPjeXIQqhUswRfL0oCqz68QAZPzgZ7w&oe=6AD94993"
+    },
+    "personality": {
+      "tone": "modern",
+      "energy": "medium",
+      "targetAudience": "general consumers"
+    },
+    "designSystem": {
+      "framework": "custom",
+      "componentLibrary": ""
+    },
+    "confidence": {
+      "buttons": 0.81,
+      "colors": 0.9366666666666666,
+      "overall": 0.8733333333333333
+    },
+    "brandName": "Muse",
+    "logo": "https://static.xx.fbcdn.net/rsrc.php/y3/r/y6QsbGgc866.svg"
+  },
+  "metadata": {
+    "description": "Meet Muse, Meta's personal AI agent. Learn what it can do across everyday tasks, how it works, and how it helps you get more done.",
+    "bingbot": "noarchive",
+    "kaya-top-nav-floatable-theme": "dark",
+    "robots": "index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1",
+    "viewport": "width=device-width,initial-scale=1,maximum-scale=2,shrink-to-fit=no",
+    "ogTitle": "Muse: Meta's personal AI agent, features & capabilities",
+    "twitter:description": "Meet Muse, Meta's personal AI agent. Learn what it can do across everyday tasks, how it works, and how it helps you get more done.",
+    "referrer": [
+      "origin-when-crossorigin",
+      "origin-when-crossorigin",
+      "origin-when-crossorigin"
+    ],
+    "ogImage": "https://scontent-phl2-1.xx.fbcdn.net/v/t39.2365-6/795767136_1630478025086800_8969738526855678960_n.webp?_nc_cat=104&ccb=1-7&_nc_sid=aa6a2f&_nc_ohc=kwppeJgoqRAQ7kNvwEitXKU&_nc_oc=Adrpj8fHx1iNeaB1mzmihYlZPY5aBobYsx9znqOdfP4IWIWu2rytcSg44HcJThZvDTeLgLWe9VPfBsfeSxGaH0jk&_nc_zt=14&_nc_ht=scontent-phl2-1.xx&_nc_gid=KaC0-OtblJtuI7yT_HOK1Q&_nc_ss=7b289&oh=00_AQNn3An3FFBu9wtLPjeXIQqhUswRfL0oCqz68QAZPzgZ7w&oe=6AD94993",
+    "ogDescription": "Meet Muse, Meta's personal AI agent. Learn what it can do across everyday tasks, how it works, and how it helps you get more done.",
+    "title": "Muse: Meta's personal AI agent, features & capabilities",
+    "language": "en",
+    "twitter:card": "Muse: Meta's personal AI agent, features & capabilities",
+    "og:image": "https://scontent-phl2-1.xx.fbcdn.net/v/t39.2365-6/795767136_1630478025086800_8969738526855678960_n.webp?_nc_cat=104&ccb=1-7&_nc_sid=aa6a2f&_nc_ohc=kwppeJgoqRAQ7kNvwEitXKU&_nc_oc=Adrpj8fHx1iNeaB1mzmihYlZPY5aBobYsx9znqOdfP4IWIWu2rytcSg44HcJThZvDTeLgLWe9VPfBsfeSxGaH0jk&_nc_zt=14&_nc_ht=scontent-phl2-1.xx&_nc_gid=KaC0-OtblJtuI7yT_HOK1Q&_nc_ss=7b289&oh=00_AQNn3An3FFBu9wtLPjeXIQqhUswRfL0oCqz68QAZPzgZ7w&oe=6AD94993",
+    "og:title": "Muse: Meta's personal AI agent, features & capabilities",
+    "kaya-top-nav": "1588713649545372",
+    "og:description": "Meet Muse, Meta's personal AI agent. Learn what it can do across everyday tasks, how it works, and how it helps you get more done.",
+    "favicon": "https://static.xx.fbcdn.net/rsrc.php/y5/r/m4nf26cLQxS.ico",
+    "scrapeId": "01a149d8-2daf-7019-8c34-4c4b90c25bc7",
+    "sourceURL": "https://ai.meta.com/muse/",
+    "url": "https://ai.meta.com/muse/",
+    "statusCode": 200,
+    "contentType": "text/html; charset=\"utf-8\"",
+    "timezone": "America/New_York",
+    "proxyUsed": "basic",
+    "indexId": "d305c723-81bb-4cd5-a662-1e308bae2d2a",
+    "creditsUsed": 1,
+    "concurrencyLimited": false
+  },
+  "images": [
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1714239859675016&version=1714239253008410&cb=v2&vp=1&resize_width=2048&resize_height=2048",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1753800308869917&version=1788802033&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=975942871458301&version=1780357570&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1038190125290300&version=1784931174&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=2465669417262632&version=1790192623&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1116625454127090&version=1790122886&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1251723253746824&version=1788817246&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1344529021090015&version=1790122886&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1895977861394271&version=1790122473&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=878166652047061&version=1789771377&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1404459274486584&version=1790125805&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1439398780789643&version=1780357570&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=2581178958999069&version=1784931174&transcode_extension=webp",
+    "https://scontent-dfw6-1.xx.fbcdn.net/v/t39.2365-6/546486258_1500767097790271_4721227734634857602_n.svg?_nc_cat=102&ccb=1-7&_nc_sid=aa6a2f&_nc_ohc=9icPodD8wpAQ7kNvwFZQDw9&_nc_oc=Adq7YdHZyA7hENxEyR-NQJgrT2S8uqPWqVzZa-zUoMWxzsHm0WIyZH0zQeoRR0BT_mA&_nc_zt=14&_nc_ht=scontent-dfw6-1.xx&_nc_gid=MmBHtS-lkeH9-CvqwxGJTQ&_nc_ss=7b289&oh=00_AQPKKBPytQytEdGtzh8mBQ4yB7aRdDYE4500sq1oG7DjZw&oe=6AD93186",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=798468513292079&version=1790101056&transcode_extension=webp",
+    "https://scontent-dfw5-2.xx.fbcdn.net/v/t39.2365-6/548214759_2490627304647763_4757435531168354798_n.svg?_nc_cat=100&ccb=1-7&_nc_sid=aa6a2f&_nc_ohc=5zKrtOcxdr4Q7kNvwHbAX4J&_nc_oc=AdpAjTL8gnH5XJqKE8RHaoQvPHAiPl6Dz8FB9Qeb9Sayvy7xNsjq3BpcIez-BtF6KrE&_nc_zt=14&_nc_ht=scontent-dfw5-2.xx&_nc_gid=MmBHtS-lkeH9-CvqwxGJTQ&_nc_ss=7b289&oh=00_AQMaMKmTbgLAbht1zAyliZ0Tr0uvrRfRgpeL_ULUPNsiVg&oe=6AD94039",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1384997017161885&version=1789515260&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1752598275884875&version=1752597532551616&cb=v2&vp=1&resize_width=2048&resize_height=2048",
+    "https://scontent-dfw5-2.xx.fbcdn.net/v/t39.2365-6/547644358_774817915155155_6340069959918401126_n.svg?_nc_cat=104&ccb=1-7&_nc_sid=aa6a2f&_nc_ohc=h9lRAJF9GtIQ7kNvwGXsCFo&_nc_oc=AdpAVHUk5Yxxy1Hzf1Mt1c3a6IFlf_vfI65rEnmO8t_gjs7l5CAiLybNK-azevUDQdo&_nc_zt=14&_nc_ht=scontent-dfw5-2.xx&_nc_gid=MmBHtS-lkeH9-CvqwxGJTQ&_nc_ss=7b289&oh=00_AQMz0dDOst7njAXDNizLLGmpehL2rseAZPqnw5DaNsXS1Q&oe=6AD958C0",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=2186697255599725&version=1790192997&transcode_extension=webp",
+    "https://static.xx.fbcdn.net/rsrc.php/y3/r/y6QsbGgc866.svg",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1675935116850770&version=1790101056&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=4037036369935159&version=1788802033&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1695517941517570&version=1788554990&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=951355217371334&version=1789515260&transcode_extension=webp",
+    "https://scontent-dfw6-2.xx.fbcdn.net/v/t39.2365-6/547198970_1550592636307494_1934626714975468834_n.svg?_nc_cat=109&ccb=1-7&_nc_sid=aa6a2f&_nc_ohc=_R-RG-eHY24Q7kNvwEm-pwM&_nc_oc=Adp2uLcxKgaywmD_Zn5nYYOFK0__k6rWUdCZvVmB-1woJaX1zKg-S_Cczh1YXgr6qK4&_nc_zt=14&_nc_ht=scontent-dfw6-2.xx&_nc_gid=MmBHtS-lkeH9-CvqwxGJTQ&_nc_ss=7b289&oh=00_AQNa859nJaudvRSVC3aU9aI-Yrickl5wCGXf19i8wyrelw&oe=6AD938DC",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=4646017655684999&version=1790192623&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1603133738132740&version=1603133018132812&cb=v2&vp=1&resize_width=2048&resize_height=2048",
+    "https://static.xx.fbcdn.net/rsrc.php/y9/r/tL_v571NdZ0.svg",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1412395267704444&version=1790122473&transcode_extension=webp",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1737190824205962&version=1737190564205988&cb=v2&vp=1&resize_width=2048&resize_height=2048",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=1112477381185646&version=1112477031185681&cb=v2&vp=1&resize_width=2048&resize_height=2048",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=2309512019795966&version=1789515260&transcode_extension=webp",
+    "https://scontent-dfw5-1.xx.fbcdn.net/v/t39.2365-6/545640326_1307097027727569_121455973836689142_n.svg?_nc_cat=106&ccb=1-7&_nc_sid=aa6a2f&_nc_ohc=li2rvxnuk8kQ7kNvwEfIqzh&_nc_oc=AdpkaZ-GqP0CvEatB8F5-OcPcIYPZZAu9BbsM69EFRkQW1jAtQKBekb2eN85A9fCJDs&_nc_zt=14&_nc_ht=scontent-dfw5-1.xx&_nc_gid=MmBHtS-lkeH9-CvqwxGJTQ&_nc_ss=7b289&oh=00_AQMCCnM3OidymQMCgC3Qvi4YHbzhQqmSL2C_wvSzHhjR6g&oe=6AD93AEE",
+    "https://lookaside.fbsbx.com/elementpath/media/?media_id=2219289605306020&version=2219288905306090&cb=v2&vp=1&resize_width=2048&resize_height=2048"
+  ]
+}
