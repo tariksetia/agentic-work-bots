@@ -9,6 +9,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 <!-- END:nextjs-agent-rules -->
 
  
+## Database
+- Apply schema changes with `npm run db:push` (`drizzle-kit push`). Never generate or run Drizzle migrations, and do not add migration files or a `drizzle/` folder.
+
+## Development
+This is a development project. There is no backward compatibility and data is worthless. Prefer data loss, never backfill, migrate or preserve the existing rows, and never spend effort on keeping old data working. Every schema change means clean state.
+
 ## Git
 - Never create branches, worktrees, or commits automatically. Only do so when the user explicitly asks for that specific action in the current request.
 - Leave changes uncommitted in the working tree on the current branch and let the user decide when
