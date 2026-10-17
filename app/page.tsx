@@ -1,6 +1,10 @@
+import { auth } from "@clerk/nextjs/server"
+
 import { Button } from "@/components/ui/button"
 
-export default function Page() {
+export default async function Page() {
+  await auth.protect()
+
   return (
     <div className="flex min-h-svh p-6">
       <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
