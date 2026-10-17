@@ -1,10 +1,11 @@
 "use server"
 
 import { auth } from "@clerk/nextjs/server"
+import { nanoid } from "nanoid"
 import { revalidatePath } from "next/cache"
 
 import { db } from "@/lib/db"
-import { bots, insertBotSchema } from "@/lib/db/schema"
+import { bots, chatMembers, chats, insertBotSchema } from "@/lib/db/schema"
 
 export async function createBot(input: unknown) {
   const { isAuthenticated, userId } = await auth()
@@ -22,16 +23,28 @@ export async function createBot(input: unknown) {
     }
   }
 
-  const [bot] = await db
-    .insert(bots)
-    .values({
+  const botId = nanoid()
+  const chatId = nanoid()
+
+  await db.batch([
+    db.insert(bots).values({
+      id: botId,
       ...parsed.data,
       userId,
       instructions: parsed.data.instructions || null,
-    })
-    .returning({ id: bots.id })
+    }),
+    db.insert(chats).values({
+      id: chatId,
+      userId,
+      kind: "direct",
+    }),
+    db.insert(chatMembers).values({
+      chatId,
+      botId,
+    }),
+  ])
 
   revalidatePath("/")
 
-  return { ok: true as const, id: bot.id }
+  return { ok: true as const, id: botId, chatId }
 }
