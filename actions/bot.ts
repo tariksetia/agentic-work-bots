@@ -44,7 +44,7 @@ export async function createBot(input: unknown) {
     }),
   ])
 
-  revalidatePath("/")
+  revalidatePath("/", "layout")
 
   return { ok: true as const, id: botId, chatId }
 }

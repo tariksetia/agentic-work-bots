@@ -1,10 +1,12 @@
 "use client"
 
 import { UserButton } from "@clerk/nextjs"
+import { formatDistanceToNow } from "date-fns"
 import { PlusIcon, UsersIcon } from "lucide-react"
 import { useState } from "react"
 
 import { BotDialog } from "@/components/bot-dialog"
+import { ChatAvatar } from "@/components/chat-avatar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -18,13 +20,15 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import type { ChatListItem } from "@/queries/bots"
 
-export function AppSidebar() {
+export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
   const [botOpen, setBotOpen] = useState(false)
 
   return (
@@ -59,8 +63,34 @@ export function AppSidebar() {
       </SidebarHeader>
       <BotDialog open={botOpen} onOpenChange={setBotOpen} />
       <SidebarContent>
-        <SidebarGroup />
-        <SidebarGroup />
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {chats.map((chat) => (
+                <SidebarMenuItem key={chat.id}>
+                  <SidebarMenuButton size="lg" className="h-auto">
+                    <ChatAvatar seed={chat.bot.avatar} className="shrink-0" />
+                    <div className="grid min-w-0 flex-1 leading-tight">
+                      <span className="flex min-w-0 items-baseline gap-2">
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                          {chat.bot.name}
+                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {formatDistanceToNow(chat.lastMessageAt)}
+                        </span>
+                      </span>
+                      {chat.lastMessagePreview ? (
+                        <span className="truncate text-xs text-muted-foreground">
+                          {chat.lastMessagePreview}
+                        </span>
+                      ) : null}
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
