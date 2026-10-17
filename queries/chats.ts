@@ -34,10 +34,12 @@ export async function getChat(chatId: string) {
 
   return {
     id: chat.id,
-    lastMessageAt: chat.lastMessageAt,
     bot: {
+      id: bot.id,
       name: bot.name,
       avatar: bot.avatar,
+      job: bot.job,
+      instructions: bot.instructions,
     },
   }
 }

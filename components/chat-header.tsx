@@ -1,26 +1,35 @@
-import { formatDistanceToNow } from "date-fns"
+"use client"
+
 import { MonitorIcon } from "lucide-react"
 
+import { BotDialog, type BotDialogBot } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Button } from "@/components/ui/button"
 
-export function ChatHeader({
-  bot,
-  lastMessageAt,
-}: {
-  bot: { name: string; avatar: string }
-  lastMessageAt: Date
-}) {
+export function ChatHeader({ bot }: { bot: BotDialogBot }) {
   return (
     <header className="flex items-center gap-3 border-b px-4 py-2.5">
-      <ChatAvatar seed={bot.avatar} className="rounded-md" />
-      <div className="grid min-w-0 flex-1 leading-tight">
-        <span className="truncate text-sm font-medium">{bot.name}</span>
-        <span className="truncate text-xs text-muted-foreground">
-          {formatDistanceToNow(lastMessageAt)}
-        </span>
-      </div>
-      <Button variant="outline" size="icon" type="button">
+      <BotDialog
+        key={bot.id}
+        bot={bot}
+        trigger={
+          <Button
+            type="button"
+            variant="ghost"
+            aria-label={`Edit ${bot.name}`}
+            className="-ml-2 h-auto w-fit max-w-full min-w-0 shrink justify-start gap-3 px-2 py-1 font-normal"
+          >
+            <ChatAvatar seed={bot.avatar} className="rounded-md" />
+            <span className="truncate text-sm font-medium">{bot.name}</span>
+          </Button>
+        }
+      />
+      <Button
+        variant="outline"
+        size="icon"
+        type="button"
+        className="ml-auto"
+      >
         <MonitorIcon />
         <span className="sr-only">Desktop</span>
       </Button>

@@ -18,5 +18,5 @@ export default async function Page({
     notFound()
   }
 
-  return <ChatHeader bot={chat.bot} lastMessageAt={chat.lastMessageAt} />
+  return <ChatHeader bot={chat.bot} />
 }

@@ -1,6 +1,7 @@
 "use server"
 
 import { auth } from "@clerk/nextjs/server"
+import { and, eq } from "drizzle-orm"
 import { nanoid } from "nanoid"
 import { revalidatePath } from "next/cache"
 
@@ -47,4 +48,42 @@ export async function createBot(input: unknown) {
   revalidatePath("/", "layout")
 
   return { ok: true as const, id: botId, chatId }
+}
+
+export async function updateBot(botId: string, input: unknown) {
+  const { isAuthenticated, userId } = await auth()
+
+  if (!isAuthenticated || !userId) {
+    return { ok: false as const, error: "You need to be signed in." }
+  }
+
+  if (!botId) {
+    return { ok: false as const, error: "That bot could not be found." }
+  }
+
+  const parsed = insertBotSchema.safeParse(input)
+
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Check the form and try again.",
+    }
+  }
+
+  const updated = await db
+    .update(bots)
+    .set({
+      ...parsed.data,
+      instructions: parsed.data.instructions || null,
+    })
+    .where(and(eq(bots.id, botId), eq(bots.userId, userId)))
+    .returning({ id: bots.id })
+
+  if (updated.length === 0) {
+    return { ok: false as const, error: "That bot could not be found." }
+  }
+
+  revalidatePath("/", "layout")
+
+  return { ok: true as const, id: botId }
 }

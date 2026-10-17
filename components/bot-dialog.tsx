@@ -3,10 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PlusIcon, ShuffleIcon } from "lucide-react"
 import { nanoid } from "nanoid"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactElement } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
-import { createBot } from "@/actions/bot"
+import { createBot, updateBot } from "@/actions/bot"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -82,16 +82,54 @@ function valuesFor(
   }
 }
 
+export type BotDialogBot = {
+  id: string
+  name: string
+  avatar: string
+  job: string
+  instructions: string | null
+}
+
+type PresetId = (typeof presets)[number]["id"]
+
+function presetIdFor(bot: BotDialogBot) {
+  const instructions = bot.instructions ?? ""
+
+  return (
+    presets.find(
+      (preset) =>
+        preset.name === bot.name &&
+        preset.job === bot.job &&
+        preset.instructions === instructions
+    )?.id ?? null
+  )
+}
+
+function valuesForBot(bot: BotDialogBot): InsertBot {
+  return {
+    name: bot.name,
+    job: bot.job,
+    instructions: bot.instructions ?? "",
+    avatar: bot.avatar,
+  }
+}
+
 export function BotDialog({
+  bot,
+  trigger,
   open: openProp,
   onOpenChange,
 }: {
+  bot?: BotDialogBot
+  trigger?: ReactElement
   open?: boolean
   onOpenChange?: (open: boolean) => void
 } = {}) {
+  const editing = bot !== undefined
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
-  const [presetId, setPresetId] = useState<(typeof presets)[number]["id"]>(
-    defaultPreset.id
+  const [dialogKey, setDialogKey] = useState(0)
+  const [presetId, setPresetId] = useState<PresetId | null>(
+    bot ? presetIdFor(bot) : defaultPreset.id
   )
   const [formError, setFormError] = useState<string | null>(null)
   const isControlled = openProp !== undefined
@@ -100,7 +138,7 @@ export function BotDialog({
 
   const form = useForm<InsertBot>({
     resolver: zodResolver(insertBotSchema),
-    defaultValues: valuesFor(defaultPreset, "ada"),
+    defaultValues: bot ? valuesForBot(bot) : valuesFor(defaultPreset, "ada"),
   })
 
   const avatar = useWatch({ control: form.control, name: "avatar" })
@@ -130,30 +168,45 @@ export function BotDialog({
   useEffect(() => {
     if (open && !wasOpen.current) {
       setFormError(null)
-      setPresetId(defaultPreset.id)
-      form.reset(valuesFor(defaultPreset, nanoid()))
+      if (bot) {
+        setPresetId(presetIdFor(bot))
+        form.reset(valuesForBot(bot))
+      } else {
+        setPresetId(defaultPreset.id)
+        form.reset(valuesFor(defaultPreset, nanoid()))
+      }
     }
     wasOpen.current = open
-  }, [open, form])
+  }, [open, form, bot])
 
   async function onSubmit(values: InsertBot) {
     setFormError(null)
 
     try {
-      const result = await createBot(values)
+      const result = bot
+        ? await updateBot(bot.id, values)
+        : await createBot(values)
       if (!result.ok) {
         setFormError(result.error)
         return
       }
       handleOpenChange(false)
+      // Remount so the refresh after a save cannot leave the exit animation open.
+      setDialogKey((key) => key + 1)
     } catch {
-      setFormError("Could not create the bot.")
+      setFormError(
+        bot ? "Could not update the bot." : "Could not create the bot."
+      )
     }
   }
 
+  const formId = editing ? "edit-bot" : "create-bot"
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      {isControlled ? null : (
+    <Dialog key={dialogKey} open={open} onOpenChange={handleOpenChange}>
+      {isControlled ? null : trigger ? (
+        <DialogTrigger render={trigger} />
+      ) : (
         <DialogTrigger render={<Button variant="secondary" size="lg" />}>
           <PlusIcon data-icon="inline-start" />
           Create a new bot
@@ -161,19 +214,21 @@ export function BotDialog({
       )}
       <DialogContent className="w-[min(32rem,calc(100%-2rem))] max-w-lg sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New bot</DialogTitle>
+          <DialogTitle>{editing ? "Edit bot" : "New bot"}</DialogTitle>
           <DialogDescription>
-            Give it a face, a name, and a job to do.
+            {editing
+              ? "Change its face, name, or the job it does."
+              : "Give it a face, a name, and a job to do."}
           </DialogDescription>
         </DialogHeader>
         <form
-          id="create-bot"
+          id={formId}
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex flex-col gap-5"
         >
           <ToggleGroup
             aria-label="Bot presets"
-            value={[presetId]}
+            value={presetId ? [presetId] : []}
             onValueChange={(groupValue) => {
               const next = groupValue[0]
               if (next) applyPreset(next)
@@ -283,9 +338,9 @@ export function BotDialog({
           <DialogClose render={<Button variant="outline" type="button" />}>
             Cancel
           </DialogClose>
-          <Button type="submit" form="create-bot" disabled={isSubmitting}>
+          <Button type="submit" form={formId} disabled={isSubmitting}>
             {isSubmitting && <Spinner data-icon="inline-start" />}
-            Create bot
+            {editing ? "Update bot" : "Create bot"}
           </Button>
         </DialogFooter>
       </DialogContent>
