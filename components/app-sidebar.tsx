@@ -2,12 +2,21 @@
 
 import { UserButton } from "@clerk/nextjs"
 import { formatDistanceToNow } from "date-fns"
-import { PlusIcon, UsersIcon } from "lucide-react"
-import { useState } from "react"
+import { PlusIcon, SearchIcon, UsersIcon } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { BotDialog } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Button } from "@/components/ui/button"
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Kbd } from "@/components/ui/kbd"
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +40,25 @@ import type { ChatListItem } from "@/queries/bots"
 
 export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
   const [botOpen, setBotOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (
+        event.key.toLowerCase() !== "k" ||
+        !(event.metaKey || event.ctrlKey)
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      setSearchOpen((open) => !open)
+    }
+
+    window.addEventListener("keydown", onKeyDown, true)
+    return () => window.removeEventListener("keydown", onKeyDown, true)
+  }, [])
 
   return (
     <Sidebar>
@@ -60,8 +89,56 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        <Button
+          className="h-8 w-full min-w-0 justify-start rounded-lg border border-input bg-transparent px-2.5 py-1 text-base font-normal text-muted-foreground transition-colors outline-none hover:text-primary-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 md:text-sm dark:bg-input/30 dark:hover:bg-primary/80 dark:disabled:bg-input/80"
+          onClick={() => setSearchOpen(true)}
+        >
+          <SearchIcon data-icon="inline-start" />
+          Search
+          <Kbd className="ml-auto">⌘K</Kbd>
+        </Button>
       </SidebarHeader>
       <BotDialog open={botOpen} onOpenChange={setBotOpen} />
+      <CommandDialog
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        title="Search chats"
+        description="Search your chats"
+        className="sm:max-w-lg"
+      >
+        <Command>
+          <CommandInput placeholder="Search chats..." />
+          <CommandList>
+            <CommandEmpty>No chats found.</CommandEmpty>
+            <CommandGroup>
+              {chats.map((chat) => (
+                <CommandItem
+                  key={chat.id}
+                  value={`${chat.bot.name} ${chat.lastMessagePreview ?? ""}`}
+                  onSelect={() => setSearchOpen(false)}
+                >
+                  <ChatAvatar seed={chat.bot.avatar} className="shrink-0" />
+                  <div className="grid min-w-0 flex-1 leading-tight">
+                    <span className="flex min-w-0 items-baseline gap-2">
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {chat.bot.name}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatDistanceToNow(chat.lastMessageAt)}
+                      </span>
+                    </span>
+                    {chat.lastMessagePreview ? (
+                      <span className="truncate text-xs text-muted-foreground">
+                        {chat.lastMessagePreview}
+                      </span>
+                    ) : null}
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </CommandDialog>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
