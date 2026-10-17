@@ -3,10 +3,21 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PlusIcon, ShuffleIcon } from "lucide-react"
 import { nanoid } from "nanoid"
+import { unstable_rethrow } from "next/navigation"
 import { useEffect, useRef, useState, type ReactElement } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
-import { createBot, updateBot } from "@/actions/bot"
+import { createBot, deleteBot, updateBot } from "@/actions/bot"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -132,6 +143,9 @@ export function BotDialog({
     bot ? presetIdFor(bot) : defaultPreset.id
   )
   const [formError, setFormError] = useState<string | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const isControlled = openProp !== undefined
   const open = isControlled ? openProp : uncontrolledOpen
   const wasOpen = useRef(false)
@@ -143,6 +157,7 @@ export function BotDialog({
 
   const avatar = useWatch({ control: form.control, name: "avatar" })
   const isSubmitting = form.formState.isSubmitting
+  const isBusy = isSubmitting || isDeleting
 
   function applyPreset(id: string) {
     const preset = presets.find((item) => item.id === id)
@@ -161,8 +176,38 @@ export function BotDialog({
   }
 
   function handleOpenChange(next: boolean) {
+    if (!next && (confirmOpen || isDeleting)) return
+    if (!next) {
+      setConfirmOpen(false)
+      setDeleteError(null)
+    }
     if (!isControlled) setUncontrolledOpen(next)
     onOpenChange?.(next)
+  }
+
+  function handleConfirmOpenChange(next: boolean) {
+    if (isDeleting) return
+    setConfirmOpen(next)
+    if (!next) setDeleteError(null)
+  }
+
+  async function onDelete() {
+    if (!bot) return
+
+    setDeleteError(null)
+    setIsDeleting(true)
+
+    try {
+      const result = await deleteBot(bot.id)
+      if (!result.ok) {
+        setDeleteError(result.error)
+        setIsDeleting(false)
+      }
+    } catch (error) {
+      unstable_rethrow(error)
+      setDeleteError("Could not delete the bot.")
+      setIsDeleting(false)
+    }
   }
 
   useEffect(() => {
@@ -236,7 +281,7 @@ export function BotDialog({
             spacing={2}
             variant="outline"
             size="sm"
-            disabled={isSubmitting}
+            disabled={isBusy}
             className="flex-wrap"
           >
             {presets.map((preset) => (
@@ -262,7 +307,7 @@ export function BotDialog({
               <Button
                 type="button"
                 variant="outline"
-                disabled={isSubmitting}
+                disabled={isBusy}
                 onClick={() =>
                   form.setValue("avatar", nanoid(), { shouldDirty: true })
                 }
@@ -281,7 +326,7 @@ export function BotDialog({
                     {...field}
                     id={field.name}
                     autoComplete="off"
-                    disabled={isSubmitting}
+                    disabled={isBusy}
                     aria-invalid={fieldState.invalid}
                   />
                   {fieldState.invalid && (
@@ -300,7 +345,7 @@ export function BotDialog({
                     {...field}
                     id={field.name}
                     autoComplete="off"
-                    disabled={isSubmitting}
+                    disabled={isBusy}
                     aria-invalid={fieldState.invalid}
                   />
                   {fieldState.invalid && (
@@ -321,7 +366,7 @@ export function BotDialog({
                     {...field}
                     id={field.name}
                     rows={3}
-                    disabled={isSubmitting}
+                    disabled={isBusy}
                     aria-invalid={fieldState.invalid}
                     className="min-h-24"
                   />
@@ -335,10 +380,56 @@ export function BotDialog({
           {formError ? <FieldError>{formError}</FieldError> : null}
         </form>
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" type="button" />}>
+          {bot ? (
+            <AlertDialog
+              open={confirmOpen}
+              onOpenChange={handleConfirmOpenChange}
+            >
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="sm:mr-auto"
+                    disabled={isBusy}
+                  />
+                }
+              >
+                Delete
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this bot?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This removes {bot.name} and its chat.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {deleteError ? <FieldError>{deleteError}</FieldError> : null}
+                <AlertDialogFooter>
+                  <AlertDialogCancel type="button" disabled={isDeleting}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isDeleting}
+                    onClick={onDelete}
+                  >
+                    {isDeleting && <Spinner data-icon="inline-start" />}
+                    Delete bot
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
+          <DialogClose
+            render={
+              <Button variant="outline" type="button" disabled={isBusy} />
+            }
+          >
             Cancel
           </DialogClose>
-          <Button type="submit" form={formId} disabled={isSubmitting}>
+          <Button type="submit" form={formId} disabled={isBusy}>
             {isSubmitting && <Spinner data-icon="inline-start" />}
             {editing ? "Update bot" : "Create bot"}
           </Button>
