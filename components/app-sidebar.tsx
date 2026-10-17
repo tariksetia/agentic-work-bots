@@ -37,6 +37,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 import type { ChatListItem } from "@/queries/bots"
 
@@ -64,9 +65,9 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
   }, [])
 
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <div className="flex justify-end">
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="group-data-[collapsible=icon]:min-w-0 group-data-[collapsible=icon]:overflow-hidden">
+        <div className="flex justify-end group-data-[collapsible=icon]:justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button variant="ghost" size="icon" />}
@@ -93,12 +94,12 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
           </DropdownMenu>
         </div>
         <Button
-          className="h-8 w-full min-w-0 justify-start rounded-lg border border-input bg-transparent px-2.5 py-1 text-base font-normal text-muted-foreground transition-colors outline-none hover:text-primary-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 md:text-sm dark:bg-input/30 dark:hover:bg-primary/80 dark:disabled:bg-input/80"
+          className="h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-lg border border-input bg-transparent px-2.5 py-1 text-base font-normal text-muted-foreground transition-colors outline-none group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:max-w-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:self-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0! hover:text-primary-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 md:text-sm dark:bg-input/30 dark:group-data-[collapsible=icon]:bg-transparent dark:hover:bg-primary/80 dark:disabled:bg-input/80"
           onClick={() => setSearchOpen(true)}
         >
           <SearchIcon data-icon="inline-start" />
-          Search
-          <Kbd className="ml-auto">⌘K</Kbd>
+          <span className="group-data-[collapsible=icon]:hidden">Search</span>
+          <Kbd className="ml-auto group-data-[collapsible=icon]:hidden">⌘K</Kbd>
         </Button>
       </SidebarHeader>
       <BotDialog open={botOpen} onOpenChange={setBotOpen} />
@@ -148,16 +149,17 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="group-data-[collapsible=icon]:gap-2">
               {chats.map((chat) => (
                 <SidebarMenuItem key={chat.id}>
                   <SidebarMenuButton
                     size="lg"
-                    className="h-auto"
+                    className="h-auto group-data-[collapsible=icon]:justify-center"
+                    tooltip={chat.bot.name}
                     render={<Link href={`/chats/${chat.id}`} />}
                   >
                     <ChatAvatar seed={chat.bot.avatar} className="shrink-0" />
-                    <div className="grid min-w-0 flex-1 leading-tight">
+                    <div className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
                       <span className="flex min-w-0 items-baseline gap-2">
                         <span className="min-w-0 flex-1 truncate font-medium">
                           {chat.bot.name}
@@ -185,7 +187,7 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
             <SidebarMenuButton
               size="lg"
               render={<div />}
-              className="items-stretch p-0 focus-within:ring-2"
+              className="items-stretch p-0 group-data-[collapsible=icon]:justify-center focus-within:ring-2"
             >
               <UserButton
                 showName
@@ -222,6 +224,11 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
                       justifyContent: "flex-start",
                       gap: "0.5rem",
                       padding: "0.5rem",
+                      "[data-collapsible=icon] &": {
+                        padding: "0",
+                        justifyContent: "center",
+                        gap: "0",
+                      },
                     },
                     userButtonBox__open: {
                       backgroundColor: "var(--sidebar-accent)",
@@ -231,6 +238,10 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
                       order: -1,
                       width: "1.5rem",
                       height: "1.5rem",
+                      "[data-collapsible=icon] &": {
+                        width: "1.25rem",
+                        height: "1.25rem",
+                      },
                     },
                     userButtonOuterIdentifier: {
                       padding: 0,
@@ -242,6 +253,9 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
                       fontWeight: 500,
                       lineHeight: "1.25rem",
                       color: "inherit",
+                      "[data-collapsible=icon] &": {
+                        display: "none",
+                      },
                     },
                   },
                 }}
@@ -250,6 +264,7 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }
