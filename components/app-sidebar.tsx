@@ -3,6 +3,8 @@
 import { UserButton } from "@clerk/nextjs"
 import { formatDistanceToNow } from "date-fns"
 import { PlusIcon, SearchIcon, UsersIcon } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { BotDialog } from "@/components/bot-dialog"
@@ -39,6 +41,7 @@ import {
 import type { ChatListItem } from "@/queries/bots"
 
 export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
+  const router = useRouter()
   const [botOpen, setBotOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
@@ -115,7 +118,10 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
                 <CommandItem
                   key={chat.id}
                   value={`${chat.bot.name} ${chat.lastMessagePreview ?? ""}`}
-                  onSelect={() => setSearchOpen(false)}
+                  onSelect={() => {
+                    setSearchOpen(false)
+                    router.push(`/chats/${chat.id}`)
+                  }}
                 >
                   <ChatAvatar seed={chat.bot.avatar} className="shrink-0" />
                   <div className="grid min-w-0 flex-1 leading-tight">
@@ -145,7 +151,11 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
             <SidebarMenu>
               {chats.map((chat) => (
                 <SidebarMenuItem key={chat.id}>
-                  <SidebarMenuButton size="lg" className="h-auto">
+                  <SidebarMenuButton
+                    size="lg"
+                    className="h-auto"
+                    render={<Link href={`/chats/${chat.id}`} />}
+                  >
                     <ChatAvatar seed={chat.bot.avatar} className="shrink-0" />
                     <div className="grid min-w-0 flex-1 leading-tight">
                       <span className="flex min-w-0 items-baseline gap-2">
