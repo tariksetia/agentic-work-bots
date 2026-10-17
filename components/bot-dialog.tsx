@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { PlusIcon, ShuffleIcon } from "lucide-react"
 import { nanoid } from "nanoid"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
 import { createBot } from "@/actions/bot"
@@ -82,12 +82,21 @@ function valuesFor(
   }
 }
 
-export function BotDialog() {
-  const [open, setOpen] = useState(false)
+export function BotDialog({
+  open: openProp,
+  onOpenChange,
+}: {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+} = {}) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const [presetId, setPresetId] = useState<(typeof presets)[number]["id"]>(
     defaultPreset.id
   )
   const [formError, setFormError] = useState<string | null>(null)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? openProp : uncontrolledOpen
+  const wasOpen = useRef(false)
 
   const form = useForm<InsertBot>({
     resolver: zodResolver(insertBotSchema),
@@ -114,13 +123,18 @@ export function BotDialog() {
   }
 
   function handleOpenChange(next: boolean) {
-    setOpen(next)
-    if (!next) return
-
-    setFormError(null)
-    setPresetId(defaultPreset.id)
-    form.reset(valuesFor(defaultPreset, nanoid()))
+    if (!isControlled) setUncontrolledOpen(next)
+    onOpenChange?.(next)
   }
+
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      setFormError(null)
+      setPresetId(defaultPreset.id)
+      form.reset(valuesFor(defaultPreset, nanoid()))
+    }
+    wasOpen.current = open
+  }, [open, form])
 
   async function onSubmit(values: InsertBot) {
     setFormError(null)
@@ -131,7 +145,7 @@ export function BotDialog() {
         setFormError(result.error)
         return
       }
-      setOpen(false)
+      handleOpenChange(false)
     } catch {
       setFormError("Could not create the bot.")
     }
@@ -139,10 +153,12 @@ export function BotDialog() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="secondary" size="lg" />}>
-        <PlusIcon data-icon="inline-start" />
-        Create a new bot
-      </DialogTrigger>
+      {isControlled ? null : (
+        <DialogTrigger render={<Button variant="secondary" size="lg" />}>
+          <PlusIcon data-icon="inline-start" />
+          Create a new bot
+        </DialogTrigger>
+      )}
       <DialogContent className="w-[min(32rem,calc(100%-2rem))] max-w-lg sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New bot</DialogTitle>
