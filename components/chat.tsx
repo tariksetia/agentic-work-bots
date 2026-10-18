@@ -1,9 +1,19 @@
 "use client"
 
 import { useChat } from "@ai-sdk/react"
+import {
+  useLoadTranscript,
+  useTriggerChatTransport,
+} from "@trigger.dev/sdk/chat/react"
+import type { UIMessage } from "ai"
 import { MessageSquareIcon } from "lucide-react"
-import { useState } from "react"
+import { useCallback, useState } from "react"
 
+import {
+  loadChatTranscript,
+  mintChatAccessToken,
+  startChatSession,
+} from "@/actions/chat"
 import {
   Conversation,
   ConversationContent,
@@ -22,18 +32,73 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input"
+import { Spinner } from "@/components/ui/spinner"
+import type { chatAgent } from "@/trigger/chat"
 
-export function Chat({
+export function Chat({ chatId, botName }: { chatId: string; botName: string }) {
+  const transport = useTriggerChatTransport<typeof chatAgent>({
+    task: "chat",
+    accessToken: ({ chatId }) => mintChatAccessToken(chatId),
+    startSession: ({ chatId }) => startChatSession({ chatId }),
+  })
+  const transcript = useLoadTranscript(chatId, loadChatTranscript, {
+    transport,
+  })
+
+  if (transcript.isLoading) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+        <Spinner />
+      </div>
+    )
+  }
+
+  if (transcript.error) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center px-4">
+        <p className="text-sm text-destructive">Something went wrong.</p>
+      </div>
+    )
+  }
+
+  return (
+    <ChatSession
+      botName={botName}
+      chatId={chatId}
+      initialMessages={transcript.messages}
+      transport={transport}
+    />
+  )
+}
+
+function ChatSession({
   chatId,
   botName,
+  initialMessages,
+  transport,
 }: {
   chatId: string
   botName: string
+  initialMessages: UIMessage[]
+  transport: ReturnType<typeof useTriggerChatTransport<typeof chatAgent>>
 }) {
   const [input, setInput] = useState("")
-  const { messages, sendMessage, status, stop, error } = useChat({
+  const {
+    messages,
+    sendMessage,
+    status,
+    stop: stopChat,
+    error,
+  } = useChat({
     id: chatId,
+    messages: initialMessages,
+    transport,
+    resume: initialMessages.length > 0,
   })
+  const stop = useCallback(() => {
+    stopChat()
+    void transport.stopGeneration(chatId)
+  }, [chatId, stopChat, transport])
 
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text.trim()) {
