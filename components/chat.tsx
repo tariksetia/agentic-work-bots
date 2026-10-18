@@ -5,21 +5,17 @@ import {
   useLoadTranscript,
   useTriggerChatTransport,
 } from "@trigger.dev/sdk/chat/react"
-import type { UIMessage } from "ai"
+import { getStaticToolName, isToolUIPart } from "ai"
 import { MessageSquareIcon } from "lucide-react"
-import { useCallback, useState } from "react"
+import { useCallback, useState, type ReactNode } from "react"
 
 import {
   loadChatTranscript,
   mintChatAccessToken,
   startChatSession,
 } from "@/actions/chat"
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-  ConversationScrollButton,
-} from "@/components/ai-elements/conversation"
+import { CodeBlock } from "@/components/ai-elements/code-block"
+import { Image } from "@/components/ai-elements/image"
 import {
   Message,
   MessageContent,
@@ -32,8 +28,27 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input"
+import { Terminal, TerminalContent } from "@/components/ai-elements/terminal"
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolOutput,
+} from "@/components/ai-elements/tool"
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation"
 import { Spinner } from "@/components/ui/spinner"
-import type { chatAgent } from "@/trigger/chat"
+import { cn } from "@/lib/utils"
+import type { ChatMessage, chatAgent } from "@/trigger/chat"
+
+const emptyBytes = new Uint8Array()
+
+type ChatPart = ChatMessage["parts"][number]
+type ChatToolPart = Extract<ChatPart, { type: `tool-${string}` }>
 
 export function Chat({ chatId, botName }: { chatId: string; botName: string }) {
   const transport = useTriggerChatTransport<typeof chatAgent>({
@@ -65,7 +80,7 @@ export function Chat({ chatId, botName }: { chatId: string; botName: string }) {
     <ChatSession
       botName={botName}
       chatId={chatId}
-      initialMessages={transcript.messages}
+      initialMessages={transcript.messages as ChatMessage[]}
       transport={transport}
     />
   )
@@ -79,7 +94,7 @@ function ChatSession({
 }: {
   chatId: string
   botName: string
-  initialMessages: UIMessage[]
+  initialMessages: ChatMessage[]
   transport: ReturnType<typeof useTriggerChatTransport<typeof chatAgent>>
 }) {
   const [input, setInput] = useState("")
@@ -89,7 +104,7 @@ function ChatSession({
     status,
     stop: stopChat,
     error,
-  } = useChat({
+  } = useChat<ChatMessage>({
     id: chatId,
     messages: initialMessages,
     transport,
@@ -123,23 +138,26 @@ function ChatSession({
               description="Type a message below to begin chatting"
             />
           ) : (
-            messages.map((message) => (
-              <Message from={message.role} key={message.id}>
-                <MessageContent>
-                  {message.parts.map((part, index) => {
-                    if (part.type !== "text") {
-                      return null
-                    }
+            messages.map((message) => {
+              if (!message.parts.some(isVisiblePart)) {
+                return null
+              }
 
-                    return (
-                      <MessageResponse key={`${message.id}-${index}`}>
-                        {part.text}
-                      </MessageResponse>
-                    )
-                  })}
-                </MessageContent>
-              </Message>
-            ))
+              return (
+                <Message from={message.role} key={message.id}>
+                  <MessageContent
+                    className={cn(hasVisibleTool(message) && "w-full")}
+                  >
+                    {message.parts.map((part, index) => (
+                      <ChatPartView
+                        key={partKey(message.id, part, index)}
+                        part={part}
+                      />
+                    ))}
+                  </MessageContent>
+                </Message>
+              )
+            })
           )}
         </ConversationContent>
         <ConversationScrollButton />
@@ -170,4 +188,253 @@ function ChatSession({
       </div>
     </div>
   )
+}
+
+function ChatPartView({ part }: { part: ChatPart }) {
+  if (part.type === "text") {
+    if (!part.text) {
+      return null
+    }
+
+    return <MessageResponse>{part.text}</MessageResponse>
+  }
+
+  if (!isToolUIPart(part) || part.type === "dynamic-tool") {
+    return null
+  }
+
+  return <ChatTool part={part} />
+}
+
+function ChatTool({ part }: { part: ChatToolPart }) {
+  const name = getStaticToolName(part)
+
+  if (name === "viewScreen") {
+    return null
+  }
+
+  const body = toolBody(part)
+
+  return (
+    <Tool className="mb-0 w-full" defaultOpen={name === "showScreen"}>
+      <ToolHeader state={part.state} title={toolTitle(part)} type={part.type} />
+      {body ? <ToolContent>{body}</ToolContent> : null}
+    </Tool>
+  )
+}
+
+function toolBody(part: ChatToolPart): ReactNode {
+  if (part.state === "output-error") {
+    return <ToolOutput errorText={part.errorText} output={undefined} />
+  }
+
+  if (part.state !== "output-available") {
+    if (part.type !== "tool-bash") {
+      return null
+    }
+
+    const command = textField(part.input, "command")
+
+    return (
+      <Terminal isStreaming output={command ? `$ ${command}` : ""}>
+        <TerminalContent />
+      </Terminal>
+    )
+  }
+
+  if (!part.output.ok) {
+    return <ToolOutput errorText={part.output.error} output={undefined} />
+  }
+
+  switch (part.type) {
+    case "tool-bash": {
+      const text = commandOutput(part.input, part.output.output)
+      const output =
+        part.output.exitCode !== 0 && !part.output.output.trim()
+          ? `${text}\nexit ${part.output.exitCode}`
+          : text
+
+      return (
+        <Terminal output={output}>
+          <TerminalContent />
+        </Terminal>
+      )
+    }
+    case "tool-readFile":
+      if (part.output.binary) {
+        return (
+          <p className="text-sm text-muted-foreground">
+            Binary file, {part.output.bytes} bytes.
+          </p>
+        )
+      }
+
+      return <CodeBlock code={part.output.content} language="markdown" />
+    case "tool-writeFile":
+      return (
+        <p className="text-sm text-muted-foreground">
+          Wrote {part.output.bytes} bytes.
+        </p>
+      )
+    case "tool-listFiles":
+      if (part.output.entries.length === 0) {
+        return <p className="text-sm text-muted-foreground">Empty directory.</p>
+      }
+
+      return (
+        <ul className="flex flex-col gap-1 font-mono text-xs">
+          {part.output.entries.map((entry) => (
+            <li key={entry.path}>
+              {entry.isDir ? `${entry.name}/` : entry.name}
+            </li>
+          ))}
+          {part.output.truncated ? (
+            <li className="text-muted-foreground">And more.</li>
+          ) : null}
+        </ul>
+      )
+    case "tool-showScreen":
+      return (
+        <Image
+          alt="Desktop"
+          base64={part.output.image}
+          className="max-h-96 w-full object-contain"
+          mediaType={part.output.mediaType}
+          uint8Array={emptyBytes}
+        />
+      )
+    default:
+      return null
+  }
+}
+
+function toolTitle(part: ChatToolPart) {
+  switch (part.type) {
+    case "tool-bash":
+      return clipTitle(textField(part.input, "command") || "Bash")
+    case "tool-readFile":
+    case "tool-writeFile":
+    case "tool-listFiles":
+      return clipTitle(textField(part.input, "path") || label(part.type))
+    case "tool-mouseClick":
+      return pointTitle("Click", part.input)
+    case "tool-mouseMove":
+      return pointTitle("Move", part.input)
+    case "tool-mouseScroll":
+      return scrollTitle(part.input)
+    case "tool-keyboardType":
+      return clipTitle(textField(part.input, "text") || "Type")
+    case "tool-keyboardPress":
+      return clipTitle(textField(part.input, "key") || "Press key")
+    case "tool-showScreen":
+      return "Screen"
+    default:
+      return label(part.type)
+  }
+}
+
+function label(type: ChatToolPart["type"]) {
+  switch (type) {
+    case "tool-bash":
+      return "Bash"
+    case "tool-readFile":
+      return "Read file"
+    case "tool-writeFile":
+      return "Write file"
+    case "tool-listFiles":
+      return "List files"
+    case "tool-mouseClick":
+      return "Click"
+    case "tool-mouseMove":
+      return "Move"
+    case "tool-mouseScroll":
+      return "Scroll"
+    case "tool-keyboardType":
+      return "Type"
+    case "tool-keyboardPress":
+      return "Press key"
+    case "tool-showScreen":
+      return "Screen"
+    default:
+      return "Tool"
+  }
+}
+
+function pointTitle(
+  verb: string,
+  input: { x?: number; y?: number } | undefined
+) {
+  if (typeof input?.x !== "number" || typeof input.y !== "number") {
+    return verb
+  }
+
+  return `${verb} ${input.x}, ${input.y}`
+}
+
+function scrollTitle(input: { direction?: string } | undefined) {
+  if (!input?.direction) {
+    return "Scroll"
+  }
+
+  return `Scroll ${input.direction}`
+}
+
+function commandOutput(input: unknown, output: string) {
+  const command = textField(input, "command")
+  const body = output.trim()
+
+  if (!command) {
+    return body
+  }
+
+  return body ? `$ ${command}\n${body}` : `$ ${command}`
+}
+
+function textField(value: unknown, key: string) {
+  if (!value || typeof value !== "object" || !(key in value)) {
+    return ""
+  }
+
+  const field = (value as Record<string, unknown>)[key]
+  return typeof field === "string" ? field : ""
+}
+
+function clipTitle(value: string) {
+  if (value.length <= 80) {
+    return value
+  }
+
+  return `${value.slice(0, 77)}...`
+}
+
+function isVisiblePart(part: ChatPart) {
+  if (part.type === "text") {
+    return part.text.length > 0
+  }
+
+  const name = staticToolName(part)
+  return name !== null && name !== "viewScreen"
+}
+
+function hasVisibleTool(message: ChatMessage) {
+  return message.parts.some((part) => {
+    const name = staticToolName(part)
+    return name !== null && name !== "viewScreen"
+  })
+}
+
+function staticToolName(part: ChatPart) {
+  if (!isToolUIPart(part) || part.type === "dynamic-tool") {
+    return null
+  }
+
+  return getStaticToolName(part)
+}
+
+function partKey(messageId: string, part: ChatPart, index: number) {
+  if (isToolUIPart(part)) {
+    return part.toolCallId
+  }
+
+  return `${messageId}-${index}`
 }
