@@ -7,6 +7,8 @@ import { DesktopPanel, DesktopPanelProvider } from "@/components/desktop-panel"
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { getChat } from "@/queries/chats"
 
+export const maxDuration = 180
+
 export default async function Page({
   params,
 }: {
@@ -38,7 +40,7 @@ export default async function Page({
             <ChatHeader bot={chat.bot} />
             <Chat key={chat.id} chatId={chat.id} botName={chat.bot.name} />
           </ResizablePanel>
-          <DesktopPanel />
+          <DesktopPanel botId={chat.bot.id} />
         </ResizablePanelGroup>
       </div>
     </DesktopPanelProvider>

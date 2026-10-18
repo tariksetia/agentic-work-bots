@@ -1,3 +1,7 @@
 import "server-only"
 
-export { createSandbox, deleteSandbox } from "@/lib/sandbox"
+export {
+  createSandbox,
+  deleteSandbox,
+  getDesktopPreviewUrl,
+} from "@/lib/sandbox"

@@ -7,6 +7,8 @@ import {
 } from "@daytona/sdk"
 
 const desktops = new Set<string>()
+const vncPort = 6080
+const previewTtlSeconds = 60 * 60 * 24
 
 // Next.js and Trigger.dev load .env.local into the process. The SDK then
 // refuses DAYTONA_API_URL, because it cannot tell the file from the shell.
@@ -58,6 +60,21 @@ export async function withDesktop<T>(
   const sandbox = await openSandbox(sandboxId)
   await ensureDesktop(sandbox)
   return run(sandbox)
+}
+
+export async function getDesktopPreviewUrl(sandboxId: string) {
+  return withDesktop(sandboxId, async (sandbox) => {
+    const signed = await sandbox.getSignedPreviewUrl(vncPort, previewTtlSeconds)
+    const url = new URL("/vnc.html", signed.url)
+
+    url.searchParams.set("autoconnect", "1")
+    url.searchParams.set("reconnect", "1")
+    url.searchParams.set("resize", "scale")
+    url.searchParams.set("shared", "1")
+    url.searchParams.set("view_clip", "1")
+
+    return url.toString()
+  })
 }
 
 async function openSandbox(sandboxId: string) {
