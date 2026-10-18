@@ -23,7 +23,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input"
 
-export function ChatThread({
+export function Chat({
   chatId,
   botName,
 }: {
