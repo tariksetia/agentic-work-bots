@@ -15,6 +15,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Development
 This is a development project. There is no backward compatibility and data is worthless. Prefer data loss, never backfill, migrate or preserve the existing rows, and never spend effort on keeping old data working. Every schema change means clean state.
 
+## Railway
+The production service is `bot-works` in the `bot-works` project. When adding env vars from `.env.local`, copy the new keys onto that service.
+
+`TRIGGER_SECRET_KEY` is the exception. `.env.local` holds the Trigger.dev development key (`tr_dev_…`). The Railway deployment needs the production key (`tr_prod_…`), because a development key cannot access the production environment. Leave the Railway value in place. Do not copy `TRIGGER_SECRET_KEY` from `.env.local`.
+
 ## Git
 - Never create branches, worktrees, or commits automatically. Only do so when the user explicitly asks for that specific action in the current request.
 - Leave changes uncommitted in the working tree on the current branch and let the user decide when
