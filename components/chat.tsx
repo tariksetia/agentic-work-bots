@@ -48,6 +48,7 @@ import {
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation"
 import { ChatAvatar } from "@/components/chat-avatar"
+import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import type { ChatMessage, chatAgent } from "@/trigger/chat"
@@ -130,6 +131,22 @@ function ChatSession({
     messages: initialMessages,
     transport,
     resume: initialMessages.length > 0,
+    onFinish: ({ message, isAbort, isError }) => {
+      const target = isAbort || isError ? null : handoffTarget(message)
+
+      if (!target || !bots.some((item) => item.id === target)) {
+        return
+      }
+
+      setBotId(target)
+      // useChat is still closing this request when onFinish runs.
+      window.setTimeout(() => {
+        void sendMessage(undefined, {
+          body: { action: { type: "handoff" } },
+          metadata: { botId: target, handoffFrom: message.metadata?.botId },
+        })
+      }, 0)
+    },
   })
   const stop = useCallback(() => {
     stopChat()
@@ -141,7 +158,11 @@ function ChatSession({
       return
     }
 
-    sendMessage({ text: message.text }, { metadata: { botId: bot.id } })
+    // The message keeps the bot it was for; the request tells the agent.
+    sendMessage(
+      { text: message.text, metadata: { botId: bot.id } },
+      { metadata: { botId: bot.id } }
+    )
     setInput("")
   }
 
@@ -164,14 +185,26 @@ function ChatSession({
                 return null
               }
 
-              const author =
-                bots.length > 1 && message.role === "assistant"
+              const messageBot =
+                bots.length > 1
                   ? bots.find((item) => item.id === message.metadata?.botId)
                   : undefined
+              const author =
+                message.role === "assistant" ? messageBot : undefined
+              const addressee = message.role === "user" ? messageBot : undefined
               const content = (
                 <MessageContent
                   className={cn(hasVisibleTool(message) && "w-full")}
                 >
+                  {addressee ? (
+                    <Badge variant="outline" className="pl-0.5">
+                      <ChatAvatar
+                        seed={addressee.avatar}
+                        className="size-4 rounded-full"
+                      />
+                      {addressee.name}
+                    </Badge>
+                  ) : null}
                   {message.parts.map((part, index) => (
                     <ChatPartView
                       key={partKey(message.id, part, index)}
@@ -372,6 +405,10 @@ function toolBody(part: ChatToolPart): ReactNode {
           ) : null}
         </ul>
       )
+    case "tool-handoff":
+      return (
+        <p className="text-sm text-muted-foreground">{part.input.reason}</p>
+      )
     case "tool-showScreen":
       return (
         <Image
@@ -407,6 +444,10 @@ function toolTitle(part: ChatToolPart) {
       return clipTitle(textField(part.input, "key") || "Press key")
     case "tool-showScreen":
       return "Screen"
+    case "tool-handoff":
+      return part.state === "output-available" && part.output.ok
+        ? `Handed off to ${part.output.name}`
+        : "Hand off"
     default:
       return label(part.type)
   }
@@ -434,6 +475,8 @@ function label(type: ChatToolPart["type"]) {
       return "Press key"
     case "tool-showScreen":
       return "Screen"
+    case "tool-handoff":
+      return "Hand off"
     default:
       return "Tool"
   }
@@ -508,6 +551,16 @@ function staticToolName(part: ChatPart) {
   }
 
   return getStaticToolName(part)
+}
+
+function handoffTarget(message: ChatMessage) {
+  const part = message.parts.findLast((item) => item.type === "tool-handoff")
+
+  if (part?.type !== "tool-handoff" || part.state !== "output-available") {
+    return null
+  }
+
+  return part.output.ok ? part.output.botId : null
 }
 
 function partKey(messageId: string, part: ChatPart, index: number) {

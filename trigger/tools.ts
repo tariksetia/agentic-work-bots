@@ -266,6 +266,52 @@ export function computerTools(sandboxId: string) {
 
 export type ComputerTools = ReturnType<typeof computerTools>
 
+type HandoffBot = { id: string; name: string; job: string }
+
+// `others` are the group's other bots. A bot that was just handed a message
+// gets `locked`, so two bots cannot pass the same message back and forth.
+export function groupTools(others: HandoffBot[], locked: boolean) {
+  return {
+    handoff: tool({
+      description: [
+        "Hand the person's latest message to another bot in this group chat when its job fits the request clearly better than yours.",
+        "That bot answers the same message right after you, so do not answer it yourself.",
+        "Before calling, say in one short sentence who you are handing it to and why.",
+        "Calling this ends your turn.",
+      ].join(" "),
+      inputSchema: z.object({
+        botId: z.string().min(1).describe("The id of the bot to hand to."),
+        reason: z
+          .string()
+          .min(1)
+          .max(200)
+          .describe("Why that bot fits the request better."),
+      }),
+      execute: async ({ botId }): Promise<Handoff | Failure> => {
+        if (locked) {
+          return {
+            ok: false,
+            error:
+              "This message was just handed to you. Answer it yourself instead.",
+          }
+        }
+
+        const target = others.find((bot) => bot.id === botId)
+
+        if (!target) {
+          return { ok: false, error: "No other bot in this chat has that id." }
+        }
+
+        return { ok: true, botId: target.id, name: target.name }
+      },
+    }),
+  }
+}
+
+type Handoff = { ok: true; botId: string; name: string }
+
+export type GroupTools = ReturnType<typeof groupTools>
+
 async function takeScreenshot(
   sandboxId: string
 ): Promise<ScreenShot | Failure> {

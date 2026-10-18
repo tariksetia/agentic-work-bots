@@ -3,6 +3,8 @@ import { chat, defaultStorage } from "@trigger.dev/sdk/ai"
 import {
   stepCountIs,
   type InferUITools,
+  type StopCondition,
+  type ToolSet,
   type UIDataTypes,
   type UIMessage,
 } from "ai"
@@ -11,7 +13,12 @@ import { z } from "zod"
 
 import { db } from "@/lib/db"
 import { chats } from "@/lib/db/schema"
-import { computerTools, type ComputerTools } from "@/trigger/tools"
+import {
+  computerTools,
+  groupTools,
+  type ComputerTools,
+  type GroupTools,
+} from "@/trigger/tools"
 
 export type ChatMessageMetadata = {
   botId?: string
@@ -20,33 +27,46 @@ export type ChatMessageMetadata = {
 export type ChatMessage = UIMessage<
   ChatMessageMetadata,
   UIDataTypes,
-  InferUITools<ComputerTools>
+  InferUITools<ComputerTools & GroupTools>
 >
 
 export const chatAgent = chat.withUIMessage<ChatMessage>().agent({
   id: "chat",
   storage: defaultStorage,
-  // Group chats send the bot the user picked for this turn. A run boots
-  // without client data when the session starts before the first message.
+  // Group chats send the bot the user picked for this turn, and after a
+  // handoff the bot that passed the message on. A run boots without client
+  // data when the session starts before the first message.
   clientDataSchema: z
     .object({
       botId: z.string().optional(),
+      handoffFrom: z.string().optional(),
     })
     .optional(),
+  // The client sends this after a handoff, so the target bot answers the same
+  // message in a turn of its own.
+  actionSchema: z.object({
+    type: z.literal("handoff"),
+  }),
+  onAction: () => chat.turn(),
   uiMessageStreamOptions: {
     onError: () => "Something went wrong.",
   },
   tools: async ({ chatId, clientData }) => {
-    const { bot } = await getChatBot(chatId, clientData?.botId)
+    const { bot, group } = await getChatBot(chatId, clientData)
+    const tools: Partial<ComputerTools & GroupTools> = {}
 
-    if (!bot?.sandboxId) {
-      return {}
+    if (bot?.sandboxId) {
+      Object.assign(tools, computerTools(bot.sandboxId))
     }
 
-    return computerTools(bot.sandboxId)
+    if (group) {
+      Object.assign(tools, groupTools(group.others, group.handoffFrom !== null))
+    }
+
+    return tools
   },
   onTurnStart: async ({ chatId, clientData }) => {
-    const { bot, group } = await getChatBot(chatId, clientData?.botId)
+    const { bot, group } = await getChatBot(chatId, clientData)
 
     if (!bot) {
       throw new Error("Chat not found")
@@ -70,12 +90,25 @@ export const chatAgent = chat.withUIMessage<ChatMessage>().agent({
       messages,
       tools,
       abortSignal: signal,
-      stopWhen: stepCountIs(24),
+      stopWhen: [stepCountIs(24), handedOff],
     })
   },
 })
 
-async function getChatBot(chatId: string, botId?: string) {
+// A successful handoff ends the turn. A refused one lets the bot answer.
+const handedOff: StopCondition<ToolSet> = ({ steps }) =>
+  steps
+    .at(-1)
+    ?.toolResults.some(
+      (result) =>
+        result.toolName === "handoff" &&
+        (result.output as { ok?: boolean } | undefined)?.ok === true
+    ) ?? false
+
+async function getChatBot(
+  chatId: string,
+  clientData?: { botId?: string; handoffFrom?: string }
+) {
   const chat = await db.query.chats.findFirst({
     where: eq(chats.id, chatId),
     with: {
@@ -91,7 +124,7 @@ async function getChatBot(chatId: string, botId?: string) {
   const members = chat?.members ?? []
   // Only a member of this chat can answer, whatever the client sent.
   const bot =
-    members.find((member) => member.botId === botId)?.bot ??
+    members.find((member) => member.botId === clientData?.botId)?.bot ??
     members[0]?.bot ??
     null
 
@@ -105,7 +138,16 @@ async function getChatBot(chatId: string, botId?: string) {
       name: chat.name,
       others: members
         .filter((member) => member.bot.id !== bot?.id)
-        .map((member) => member.bot.name),
+        .map((member) => ({
+          id: member.bot.id,
+          name: member.bot.name,
+          job: member.bot.job,
+        })),
+      handoffFrom:
+        members.find(
+          (member) =>
+            member.botId === clientData?.handoffFrom && member.botId !== bot?.id
+        )?.bot.name ?? null,
     },
   }
 }
@@ -117,7 +159,11 @@ function baseInstructions(
     instructions: string | null
     sandboxId: string | null
   },
-  group: { name: string | null; others: string[] } | null
+  group: {
+    name: string | null
+    others: { id: string; name: string; job: string }[]
+    handoffFrom: string | null
+  } | null
 ) {
   const parts = [
     [
@@ -130,9 +176,24 @@ function baseInstructions(
   if (group) {
     parts.push(
       [
-        `You are in a group chat${group.name ? ` named ${group.name}` : ""} with ${group.others.join(", ")}.`,
-        "The person picks which bot answers each message. Earlier assistant replies may have come from the other bots, so do not assume you wrote them.",
-      ].join(" ")
+        `You are in a group chat${group.name ? ` named ${group.name}` : ""} with one person and these other bots:`,
+        ...group.others.map(
+          (other) => `- ${other.name} (id ${other.id}), job: ${other.job}`
+        ),
+      ].join("\n"),
+      [
+        "The person picks which bot answers each message, and this time they picked you.",
+        "Every assistant reply in the history was written by one of the bots, not necessarily by you, so do not claim earlier replies or tool results as your own.",
+        "Each bot has its own private computer. Files, commands, and screens in another bot's tool results are on that bot's computer, not yours.",
+        "Refer to the other bots by name when it helps the person.",
+      ].join(" "),
+      group.handoffFrom
+        ? `${group.handoffFrom} handed the person's latest message to you because it fits your job better. Answer it yourself. You cannot hand it off again.`
+        : [
+            "If the latest message clearly fits another bot's job better than yours, call handoff with that bot's id and a short reason, after one sentence telling the person who you are handing it to.",
+            "That bot then answers the same message. Do not answer it yourself as well.",
+            "Do not hand off for small requests you can handle, and never hand off just because a bot is mentioned.",
+          ].join(" ")
     )
   }
 
