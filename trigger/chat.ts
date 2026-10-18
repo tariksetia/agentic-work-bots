@@ -11,16 +11,18 @@ export const chatAgent = chat.agent({
   uiMessageStreamOptions: {
     onError: () => "Something went wrong.",
   },
-  run: async ({ chatId, messages, signal, streamText }) => {
+  onTurnStart: async ({ chatId }) => {
     const instructions = await getChatInstructions(chatId)
 
     if (!instructions) {
       throw new Error("Chat not found")
     }
 
+    chat.prompt.set(instructions)
+  },
+  run: async ({ messages, signal, streamText }) => {
     return streamText({
       model: amazonBedrock("us.deepseek.r1-v1:0"),
-      instructions,
       messages,
       abortSignal: signal,
     })
@@ -47,7 +49,39 @@ async function getChatInstructions(chatId: string) {
     return null
   }
 
-  return [`You are ${bot.name}. Your job is ${bot.job}.`, bot.instructions]
-    .filter(Boolean)
-    .join("\n\n")
+  return baseInstructions(bot)
+}
+
+function baseInstructions(bot: {
+  name: string
+  job: string
+  instructions: string | null
+  sandboxId: string | null
+}) {
+  const parts = [
+    [
+      `You are ${bot.name}, an AI agent built on Bot Works.`,
+      `Your job: ${bot.job}.`,
+      "Your purpose is to do that job well for the person you are talking with. Stay focused on it, answer plainly, and say so when something is outside your job or you are unsure.",
+    ].join(" "),
+  ]
+
+  if (bot.sandboxId) {
+    parts.push(
+      [
+        "You live in your own private Daytona sandbox, an isolated Linux computer that belongs only to you.",
+        "It was created from Daytona's default snapshot, with 1 vCPU, 1 GiB of memory, and 3 GiB of disk.",
+        "Python is its main language runtime, and Node.js is installed too.",
+        "It has its own filesystem and network, and what is stored on it stays with you between conversations.",
+      ].join(" ")
+    )
+  }
+
+  if (bot.instructions) {
+    parts.push(
+      `The person who created you left these notes on how you should work:\n\n${bot.instructions}`
+    )
+  }
+
+  return parts.join("\n\n")
 }

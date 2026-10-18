@@ -8,6 +8,7 @@ import { redirect, RedirectType } from "next/navigation"
 
 import { db } from "@/lib/db"
 import { bots, chatMembers, chats, insertBotSchema } from "@/lib/db/schema"
+import { createSandbox, deleteSandbox } from "@/lib/daytona"
 
 export async function createBot(input: unknown) {
   const { isAuthenticated, userId } = await auth()
@@ -28,23 +29,45 @@ export async function createBot(input: unknown) {
   const botId = nanoid()
   const chatId = nanoid()
 
-  await db.batch([
-    db.insert(bots).values({
-      id: botId,
-      ...parsed.data,
-      userId,
-      instructions: parsed.data.instructions || null,
-    }),
-    db.insert(chats).values({
-      id: chatId,
-      userId,
-      kind: "direct",
-    }),
-    db.insert(chatMembers).values({
-      chatId,
-      botId,
-    }),
-  ])
+  let sandboxId: string
+
+  try {
+    sandboxId = await createSandbox(botId)
+  } catch {
+    return {
+      ok: false as const,
+      error: "The sandbox could not be created.",
+    }
+  }
+
+  try {
+    await db.batch([
+      db.insert(bots).values({
+        id: botId,
+        ...parsed.data,
+        userId,
+        sandboxId,
+        instructions: parsed.data.instructions || null,
+      }),
+      db.insert(chats).values({
+        id: chatId,
+        userId,
+        kind: "direct",
+      }),
+      db.insert(chatMembers).values({
+        chatId,
+        botId,
+      }),
+    ])
+  } catch (error) {
+    try {
+      await deleteSandbox(sandboxId)
+    } catch {
+      // Keep the insert error.
+    }
+
+    throw error
+  }
 
   revalidatePath("/", "layout")
 
@@ -101,13 +124,24 @@ export async function deleteBot(botId: string) {
   }
 
   const owned = await db
-    .select({ id: bots.id })
+    .select({ id: bots.id, sandboxId: bots.sandboxId })
     .from(bots)
     .where(and(eq(bots.id, botId), eq(bots.userId, userId)))
     .limit(1)
 
   if (owned.length === 0) {
     return { ok: false as const, error: "That bot could not be found." }
+  }
+
+  if (owned[0].sandboxId) {
+    try {
+      await deleteSandbox(owned[0].sandboxId)
+    } catch {
+      return {
+        ok: false as const,
+        error: "The sandbox could not be deleted.",
+      }
+    }
   }
 
   const memberships = await db
