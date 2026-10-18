@@ -4,9 +4,12 @@ import { MonitorIcon } from "lucide-react"
 
 import { BotDialog, type BotDialogBot } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
+import { useDesktopPanel } from "@/components/desktop-panel"
 import { Button } from "@/components/ui/button"
 
 export function ChatHeader({ bot }: { bot: BotDialogBot }) {
+  const { open, toggle } = useDesktopPanel()
+
   return (
     <header className="flex items-center gap-3 border-b px-4 py-2.5">
       <BotDialog
@@ -29,6 +32,10 @@ export function ChatHeader({ bot }: { bot: BotDialogBot }) {
         size="icon"
         type="button"
         className="ml-auto"
+        aria-controls="desktop"
+        aria-expanded={open}
+        aria-pressed={open}
+        onClick={toggle}
       >
         <MonitorIcon />
         <span className="sr-only">Desktop</span>

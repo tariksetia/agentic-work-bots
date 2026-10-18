@@ -3,6 +3,8 @@ import { notFound } from "next/navigation"
 
 import { Chat } from "@/components/chat"
 import { ChatHeader } from "@/components/chat-header"
+import { DesktopPanel, DesktopPanelProvider } from "@/components/desktop-panel"
+import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { getChat } from "@/queries/chats"
 
 export default async function Page({
@@ -20,9 +22,25 @@ export default async function Page({
   }
 
   return (
-    <div className="flex h-svh min-h-0 flex-col">
-      <ChatHeader bot={chat.bot} />
-      <Chat key={chat.id} chatId={chat.id} botName={chat.bot.name} />
-    </div>
+    <DesktopPanelProvider>
+      <div className="flex h-svh min-h-0 flex-col">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="min-h-0 flex-1"
+        >
+          <ResizablePanel
+            className="flex min-h-0 flex-col"
+            defaultSize="100%"
+            id="chat"
+            minSize="50%"
+            style={{ overflow: "hidden" }}
+          >
+            <ChatHeader bot={chat.bot} />
+            <Chat key={chat.id} chatId={chat.id} botName={chat.bot.name} />
+          </ResizablePanel>
+          <DesktopPanel />
+        </ResizablePanelGroup>
+      </div>
+    </DesktopPanelProvider>
   )
 }
