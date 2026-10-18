@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
 
 import { Chat } from "@/components/chat"
-import { ChatHeader } from "@/components/chat-header"
+import { ChatHeader, GroupChatHeader } from "@/components/chat-header"
 import { DesktopPanel, DesktopPanelProvider } from "@/components/desktop-panel"
 import { ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { getChat } from "@/queries/chats"
@@ -23,6 +23,23 @@ export default async function Page({
     notFound()
   }
 
+  const bots = chat.bots.map((bot) => ({
+    id: bot.id,
+    name: bot.name,
+    avatar: bot.avatar,
+  }))
+
+  if (chat.kind === "group") {
+    return (
+      <div className="flex h-svh min-h-0 flex-col overflow-hidden">
+        <GroupChatHeader title={chat.title} bots={chat.bots} />
+        <Chat key={chat.id} chatId={chat.id} title={chat.title} bots={bots} />
+      </div>
+    )
+  }
+
+  const bot = chat.bots[0]
+
   return (
     <DesktopPanelProvider>
       <div className="flex h-svh min-h-0 flex-col">
@@ -37,10 +54,10 @@ export default async function Page({
             minSize="50%"
             style={{ overflow: "hidden" }}
           >
-            <ChatHeader bot={chat.bot} />
-            <Chat key={chat.id} chatId={chat.id} botName={chat.bot.name} />
+            <ChatHeader bot={bot} />
+            <Chat key={chat.id} chatId={chat.id} title={bot.name} bots={bots} />
           </ResizablePanel>
-          <DesktopPanel botId={chat.bot.id} />
+          <DesktopPanel botId={bot.id} />
         </ResizablePanelGroup>
       </div>
     </DesktopPanelProvider>

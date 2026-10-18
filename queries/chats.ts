@@ -17,7 +17,6 @@ export async function getChat(chatId: string) {
     where: and(eq(chats.id, chatId), eq(chats.userId, userId)),
     with: {
       members: {
-        limit: 1,
         orderBy: (members, { asc }) => [asc(members.botId)],
         with: {
           bot: true,
@@ -26,21 +25,23 @@ export async function getChat(chatId: string) {
     },
   })
 
-  const bot = chat?.members[0]?.bot
-
-  if (!chat || !bot) {
+  if (!chat || chat.members.length === 0) {
     return null
   }
 
+  const bots = chat.members.map(({ bot }) => ({
+    id: bot.id,
+    name: bot.name,
+    avatar: bot.avatar,
+    job: bot.job,
+    instructions: bot.instructions,
+  }))
+
   return {
     id: chat.id,
-    bot: {
-      id: bot.id,
-      name: bot.name,
-      avatar: bot.avatar,
-      job: bot.job,
-      instructions: bot.instructions,
-    },
+    kind: chat.kind,
+    title: chat.kind === "group" && chat.name ? chat.name : bots[0].name,
+    bots,
   }
 }
 

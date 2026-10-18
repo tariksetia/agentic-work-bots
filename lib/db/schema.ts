@@ -68,6 +68,23 @@ export const chats = pgTable(
   (table) => [index("chats_user_id_idx").on(table.userId)]
 )
 
+export const insertGroupChatSchema = createInsertSchema(chats, {
+  name: z.string().trim().min(1, "Give the group a name.").max(80),
+})
+  .omit({
+    id: true,
+    userId: true,
+    kind: true,
+    lastMessagePreview: true,
+    lastMessageAt: true,
+    createdAt: true,
+  })
+  .extend({
+    botIds: z.array(z.string().min(1)).min(2, "Pick at least two bots."),
+  })
+
+export type InsertGroupChat = z.infer<typeof insertGroupChatSchema>
+
 export const chatMembers = pgTable(
   "chat_members",
   {

@@ -8,7 +8,8 @@ import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { BotDialog } from "@/components/bot-dialog"
-import { ChatAvatar } from "@/components/chat-avatar"
+import { GroupChatAvatar } from "@/components/group-chat-avatar"
+import { GroupChatDialog } from "@/components/group-chat-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Command,
@@ -39,12 +40,19 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import type { ChatListItem } from "@/queries/bots"
+import type { BotListItem, ChatListItem } from "@/queries/bots"
 
-export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
+export function AppSidebar({
+  bots,
+  chats,
+}: {
+  bots: BotListItem[]
+  chats: ChatListItem[]
+}) {
   const router = useRouter()
   const { chatId } = useParams<{ chatId?: string }>()
   const [botOpen, setBotOpen] = useState(false)
+  const [groupOpen, setGroupOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
@@ -86,7 +94,11 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
                   <PlusIcon />
                   Create new bot
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    window.setTimeout(() => setGroupOpen(true), 0)
+                  }}
+                >
                   <UsersIcon />
                   Create group chat
                 </DropdownMenuItem>
@@ -95,7 +107,7 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
           </DropdownMenu>
         </div>
         <Button
-          className="h-8 w-full min-w-0 max-w-full justify-start overflow-hidden rounded-lg border border-input bg-transparent px-2.5 py-1 text-base font-normal text-muted-foreground transition-colors outline-none group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:max-w-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:self-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0! hover:text-primary-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 md:text-sm dark:bg-input/30 dark:group-data-[collapsible=icon]:bg-transparent dark:hover:bg-primary/80 dark:disabled:bg-input/80"
+          className="h-8 w-full max-w-full min-w-0 justify-start overflow-hidden rounded-lg border border-input bg-transparent px-2.5 py-1 text-base font-normal text-muted-foreground transition-colors outline-none group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:max-w-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:self-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0! hover:text-primary-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 md:text-sm dark:bg-input/30 dark:group-data-[collapsible=icon]:bg-transparent dark:hover:bg-primary/80 dark:disabled:bg-input/80"
           onClick={() => setSearchOpen(true)}
         >
           <SearchIcon data-icon="inline-start" />
@@ -104,6 +116,11 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
         </Button>
       </SidebarHeader>
       <BotDialog open={botOpen} onOpenChange={setBotOpen} />
+      <GroupChatDialog
+        bots={bots}
+        open={groupOpen}
+        onOpenChange={setGroupOpen}
+      />
       <CommandDialog
         open={searchOpen}
         onOpenChange={setSearchOpen}
@@ -119,17 +136,20 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
               {chats.map((chat) => (
                 <CommandItem
                   key={chat.id}
-                  value={`${chat.bot.name} ${chat.lastMessagePreview ?? ""}`}
+                  value={`${chat.title} ${chat.lastMessagePreview ?? ""}`}
                   onSelect={() => {
                     setSearchOpen(false)
                     router.push(`/chats/${chat.id}`)
                   }}
                 >
-                  <ChatAvatar seed={chat.bot.avatar} className="shrink-0" />
+                  <GroupChatAvatar
+                    seeds={chat.bots.map((bot) => bot.avatar)}
+                    className="shrink-0"
+                  />
                   <div className="grid min-w-0 flex-1 leading-tight">
                     <span className="flex min-w-0 items-baseline gap-2">
                       <span className="min-w-0 flex-1 truncate font-medium">
-                        {chat.bot.name}
+                        {chat.title}
                       </span>
                       <span className="shrink-0 text-xs text-muted-foreground">
                         {formatDistanceToNow(chat.lastMessageAt)}
@@ -157,14 +177,17 @@ export function AppSidebar({ chats }: { chats: ChatListItem[] }) {
                     size="lg"
                     isActive={chat.id === chatId}
                     className="h-auto group-data-[collapsible=icon]:justify-center"
-                    tooltip={chat.bot.name}
+                    tooltip={chat.title}
                     render={<Link href={`/chats/${chat.id}`} />}
                   >
-                    <ChatAvatar seed={chat.bot.avatar} className="shrink-0" />
+                    <GroupChatAvatar
+                      seeds={chat.bots.map((bot) => bot.avatar)}
+                      className="shrink-0"
+                    />
                     <div className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
                       <span className="flex min-w-0 items-baseline gap-2">
                         <span className="min-w-0 flex-1 truncate font-medium">
-                          {chat.bot.name}
+                          {chat.title}
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground">
                           {formatDistanceToNow(chat.lastMessageAt)}

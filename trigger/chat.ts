@@ -1,26 +1,43 @@
 import { amazonBedrock } from "@ai-sdk/amazon-bedrock"
+import { chat, defaultStorage } from "@trigger.dev/sdk/ai"
 import {
-  chat,
-  defaultStorage,
-  type InferChatUIMessageFromTools,
-} from "@trigger.dev/sdk/ai"
-import { stepCountIs } from "ai"
+  stepCountIs,
+  type InferUITools,
+  type UIDataTypes,
+  type UIMessage,
+} from "ai"
 import { eq } from "drizzle-orm"
+import { z } from "zod"
 
 import { db } from "@/lib/db"
 import { chats } from "@/lib/db/schema"
 import { computerTools, type ComputerTools } from "@/trigger/tools"
 
-export type ChatMessage = InferChatUIMessageFromTools<ComputerTools>
+export type ChatMessageMetadata = {
+  botId?: string
+}
+
+export type ChatMessage = UIMessage<
+  ChatMessageMetadata,
+  UIDataTypes,
+  InferUITools<ComputerTools>
+>
 
 export const chatAgent = chat.withUIMessage<ChatMessage>().agent({
   id: "chat",
   storage: defaultStorage,
+  // Group chats send the bot the user picked for this turn. A run boots
+  // without client data when the session starts before the first message.
+  clientDataSchema: z
+    .object({
+      botId: z.string().optional(),
+    })
+    .optional(),
   uiMessageStreamOptions: {
     onError: () => "Something went wrong.",
   },
-  tools: async ({ chatId }) => {
-    const bot = await getChatBot(chatId)
+  tools: async ({ chatId, clientData }) => {
+    const { bot } = await getChatBot(chatId, clientData?.botId)
 
     if (!bot?.sandboxId) {
       return {}
@@ -28,14 +45,18 @@ export const chatAgent = chat.withUIMessage<ChatMessage>().agent({
 
     return computerTools(bot.sandboxId)
   },
-  onTurnStart: async ({ chatId }) => {
-    const bot = await getChatBot(chatId)
+  onTurnStart: async ({ chatId, clientData }) => {
+    const { bot, group } = await getChatBot(chatId, clientData?.botId)
 
     if (!bot) {
       throw new Error("Chat not found")
     }
 
-    chat.prompt.set(baseInstructions(bot))
+    chat.prompt.set(baseInstructions(bot, group))
+    // Saved with the reply, so the UI knows which bot wrote it after a reload.
+    chat.setUIMessageStreamOptions({
+      messageMetadata: () => ({ botId: bot.id }),
+    })
   },
   run: async ({ messages, tools, signal, streamText }) => {
     const modelId = process.env.BEDROCK_MODEL_ID
@@ -54,12 +75,11 @@ export const chatAgent = chat.withUIMessage<ChatMessage>().agent({
   },
 })
 
-async function getChatBot(chatId: string) {
+async function getChatBot(chatId: string, botId?: string) {
   const chat = await db.query.chats.findFirst({
     where: eq(chats.id, chatId),
     with: {
       members: {
-        limit: 1,
         orderBy: (members, { asc }) => [asc(members.botId)],
         with: {
           bot: true,
@@ -68,15 +88,37 @@ async function getChatBot(chatId: string) {
     },
   })
 
-  return chat?.members[0]?.bot ?? null
+  const members = chat?.members ?? []
+  // Only a member of this chat can answer, whatever the client sent.
+  const bot =
+    members.find((member) => member.botId === botId)?.bot ??
+    members[0]?.bot ??
+    null
+
+  if (chat?.kind !== "group") {
+    return { bot, group: null }
+  }
+
+  return {
+    bot,
+    group: {
+      name: chat.name,
+      others: members
+        .filter((member) => member.bot.id !== bot?.id)
+        .map((member) => member.bot.name),
+    },
+  }
 }
 
-function baseInstructions(bot: {
-  name: string
-  job: string
-  instructions: string | null
-  sandboxId: string | null
-}) {
+function baseInstructions(
+  bot: {
+    name: string
+    job: string
+    instructions: string | null
+    sandboxId: string | null
+  },
+  group: { name: string | null; others: string[] } | null
+) {
   const parts = [
     [
       `You are ${bot.name}, an AI agent built on Bot Works.`,
@@ -84,6 +126,15 @@ function baseInstructions(bot: {
       "Your purpose is to do that job well for the person you are talking with. Stay focused on it, answer plainly, and say so when something is outside your job or you are unsure.",
     ].join(" "),
   ]
+
+  if (group) {
+    parts.push(
+      [
+        `You are in a group chat${group.name ? ` named ${group.name}` : ""} with ${group.others.join(", ")}.`,
+        "The person picks which bot answers each message. Earlier assistant replies may have come from the other bots, so do not assume you wrote them.",
+      ].join(" ")
+    )
+  }
 
   if (bot.sandboxId) {
     parts.push(

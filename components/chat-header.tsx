@@ -5,6 +5,7 @@ import { MonitorIcon } from "lucide-react"
 import { BotDialog, type BotDialogBot } from "@/components/bot-dialog"
 import { ChatAvatar } from "@/components/chat-avatar"
 import { useDesktopPanel } from "@/components/desktop-panel"
+import { GroupChatAvatar } from "@/components/group-chat-avatar"
 import { Button } from "@/components/ui/button"
 
 export function ChatHeader({ bot }: { bot: BotDialogBot }) {
@@ -40,6 +41,23 @@ export function ChatHeader({ bot }: { bot: BotDialogBot }) {
         <MonitorIcon />
         <span className="sr-only">Desktop</span>
       </Button>
+    </header>
+  )
+}
+
+export function GroupChatHeader({
+  title,
+  bots,
+}: {
+  title: string
+  bots: { avatar: string }[]
+}) {
+  return (
+    <header className="flex items-center gap-3 border-b px-4 py-2.5">
+      <div className="flex h-9 min-w-0 items-center gap-3">
+        <GroupChatAvatar seeds={bots.map((bot) => bot.avatar)} />
+        <span className="truncate text-sm font-medium">{title}</span>
+      </div>
     </header>
   )
 }

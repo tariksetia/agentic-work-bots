@@ -25,8 +25,14 @@ import {
   PromptInput,
   type PromptInputMessage,
   PromptInputFooter,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
+  PromptInputTools,
 } from "@/components/ai-elements/prompt-input"
 import { Terminal, TerminalContent } from "@/components/ai-elements/terminal"
 import {
@@ -41,6 +47,7 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation"
+import { ChatAvatar } from "@/components/chat-avatar"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import type { ChatMessage, chatAgent } from "@/trigger/chat"
@@ -49,8 +56,17 @@ const emptyBytes = new Uint8Array()
 
 type ChatPart = ChatMessage["parts"][number]
 type ChatToolPart = Extract<ChatPart, { type: `tool-${string}` }>
+type ChatBot = { id: string; name: string; avatar: string }
 
-export function Chat({ chatId, botName }: { chatId: string; botName: string }) {
+export function Chat({
+  chatId,
+  title,
+  bots,
+}: {
+  chatId: string
+  title: string
+  bots: ChatBot[]
+}) {
   const transport = useTriggerChatTransport<typeof chatAgent>({
     task: "chat",
     accessToken: ({ chatId }) => mintChatAccessToken(chatId),
@@ -78,8 +94,9 @@ export function Chat({ chatId, botName }: { chatId: string; botName: string }) {
 
   return (
     <ChatSession
-      botName={botName}
+      bots={bots}
       chatId={chatId}
+      title={title}
       initialMessages={transcript.messages as ChatMessage[]}
       transport={transport}
     />
@@ -88,16 +105,20 @@ export function Chat({ chatId, botName }: { chatId: string; botName: string }) {
 
 function ChatSession({
   chatId,
-  botName,
+  title,
+  bots,
   initialMessages,
   transport,
 }: {
   chatId: string
-  botName: string
+  title: string
+  bots: ChatBot[]
   initialMessages: ChatMessage[]
   transport: ReturnType<typeof useTriggerChatTransport<typeof chatAgent>>
 }) {
   const [input, setInput] = useState("")
+  const [botId, setBotId] = useState(bots[0].id)
+  const bot = bots.find((item) => item.id === botId) ?? bots[0]
   const {
     messages,
     sendMessage,
@@ -120,7 +141,7 @@ function ChatSession({
       return
     }
 
-    sendMessage({ text: message.text })
+    sendMessage({ text: message.text }, { metadata: { botId: bot.id } })
     setInput("")
   }
 
@@ -134,7 +155,7 @@ function ChatSession({
             <ConversationEmptyState
               className="h-full"
               icon={<MessageSquareIcon className="size-6" />}
-              title={`Message ${botName}`}
+              title={`Message ${title}`}
               description="Type a message below to begin chatting"
             />
           ) : (
@@ -143,18 +164,47 @@ function ChatSession({
                 return null
               }
 
+              const author =
+                bots.length > 1 && message.role === "assistant"
+                  ? bots.find((item) => item.id === message.metadata?.botId)
+                  : undefined
+              const content = (
+                <MessageContent
+                  className={cn(hasVisibleTool(message) && "w-full")}
+                >
+                  {message.parts.map((part, index) => (
+                    <ChatPartView
+                      key={partKey(message.id, part, index)}
+                      part={part}
+                    />
+                  ))}
+                </MessageContent>
+              )
+
+              if (!author) {
+                return (
+                  <Message from={message.role} key={message.id}>
+                    {content}
+                  </Message>
+                )
+              }
+
               return (
-                <Message from={message.role} key={message.id}>
-                  <MessageContent
-                    className={cn(hasVisibleTool(message) && "w-full")}
-                  >
-                    {message.parts.map((part, index) => (
-                      <ChatPartView
-                        key={partKey(message.id, part, index)}
-                        part={part}
-                      />
-                    ))}
-                  </MessageContent>
+                <Message
+                  from={message.role}
+                  key={message.id}
+                  className="flex-row items-start gap-3"
+                >
+                  <ChatAvatar
+                    seed={author.avatar}
+                    className="shrink-0 rounded-md"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {author.name}
+                    </span>
+                    {content}
+                  </div>
                 </Message>
               )
             })
@@ -170,10 +220,39 @@ function ChatSession({
         <PromptInput onSubmit={handleSubmit}>
           <PromptInputTextarea
             value={input}
-            placeholder={`Message ${botName}`}
+            placeholder={`Message ${bot.name}`}
             onChange={(event) => setInput(event.currentTarget.value)}
           />
-          <PromptInputFooter className="justify-end">
+          <PromptInputFooter
+            className={bots.length > 1 ? undefined : "justify-end"}
+          >
+            {bots.length > 1 ? (
+              <PromptInputTools>
+                <PromptInputSelect
+                  items={bots.map((item) => ({
+                    value: item.id,
+                    label: item.name,
+                  }))}
+                  value={bot.id}
+                  onValueChange={(value) => {
+                    if (typeof value === "string") {
+                      setBotId(value)
+                    }
+                  }}
+                >
+                  <PromptInputSelectTrigger aria-label="Bot">
+                    <PromptInputSelectValue />
+                  </PromptInputSelectTrigger>
+                  <PromptInputSelectContent>
+                    {bots.map((item) => (
+                      <PromptInputSelectItem key={item.id} value={item.id}>
+                        {item.name}
+                      </PromptInputSelectItem>
+                    ))}
+                  </PromptInputSelectContent>
+                </PromptInputSelect>
+              </PromptInputTools>
+            ) : null}
             <PromptInputSubmit
               status={status}
               onStop={stop}

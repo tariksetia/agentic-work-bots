@@ -7,7 +7,17 @@ import {
   defaultStorage,
   type ChatStartSessionParams,
 } from "@trigger.dev/sdk/ai"
+import { and, eq, inArray } from "drizzle-orm"
+import { nanoid } from "nanoid"
+import { revalidatePath } from "next/cache"
 
+import { db } from "@/lib/db"
+import {
+  bots,
+  chatMembers,
+  chats,
+  insertGroupChatSchema,
+} from "@/lib/db/schema"
 import { getChat } from "@/queries/chats"
 import type { chatAgent } from "@/trigger/chat"
 
@@ -54,4 +64,50 @@ export async function loadChatTranscript(params: {
 }) {
   await requireOwnedChat(params.chatId)
   return readTranscript(params)
+}
+
+export async function createGroupChat(input: unknown) {
+  const { isAuthenticated, userId } = await auth()
+
+  if (!isAuthenticated || !userId) {
+    return { ok: false as const, error: "You need to be signed in." }
+  }
+
+  const parsed = insertGroupChatSchema.safeParse(input)
+
+  if (!parsed.success) {
+    return {
+      ok: false as const,
+      error: parsed.error.issues[0]?.message ?? "Check the form and try again.",
+    }
+  }
+
+  const botIds = [...new Set(parsed.data.botIds)]
+  const owned = await db
+    .select({ id: bots.id })
+    .from(bots)
+    .where(and(eq(bots.userId, userId), inArray(bots.id, botIds)))
+
+  if (owned.length !== botIds.length) {
+    return {
+      ok: false as const,
+      error: "Some of those bots could not be found.",
+    }
+  }
+
+  const chatId = nanoid()
+
+  await db.batch([
+    db.insert(chats).values({
+      id: chatId,
+      userId,
+      kind: "group",
+      name: parsed.data.name,
+    }),
+    db.insert(chatMembers).values(botIds.map((botId) => ({ chatId, botId }))),
+  ])
+
+  revalidatePath("/", "layout")
+
+  return { ok: true as const, chatId }
 }
