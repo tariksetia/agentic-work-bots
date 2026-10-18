@@ -38,8 +38,14 @@ export const chatAgent = chat.withUIMessage<ChatMessage>().agent({
     chat.prompt.set(baseInstructions(bot))
   },
   run: async ({ messages, tools, signal, streamText }) => {
+    const modelId = process.env.BEDROCK_MODEL_ID
+
+    if (!modelId) {
+      throw new Error("BEDROCK_MODEL_ID is not set")
+    }
+
     return streamText({
-      model: amazonBedrock("us.anthropic.claude-sonnet-5-5"),
+      model: amazonBedrock(modelId),
       messages,
       tools,
       abortSignal: signal,
